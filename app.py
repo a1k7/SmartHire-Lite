@@ -1,6 +1,8 @@
 import os
+import json
 import pandas as pd
 import streamlit as st
+from datetime import datetime
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -12,7 +14,59 @@ from utils import (
     generate_ai_summary
 )
 
-# 🔥 NEW: Hiring Decision Logic
+# -------------------------------
+# 🔐 USAGE TRACKING SYSTEM
+# -------------------------------
+USAGE_FILE = "usage.json"
+FREE_LIMIT = 3
+
+
+def load_usage():
+    if not os.path.exists(USAGE_FILE):
+        return {"count": 0}
+    with open(USAGE_FILE, "r") as f:
+        return json.load(f)
+
+
+def save_usage(data):
+    with open(USAGE_FILE, "w") as f:
+        json.dump(data, f)
+
+
+usage = load_usage()
+
+# -------------------------------
+# 🔥 LIMIT CHECK
+# -------------------------------
+remaining = FREE_LIMIT - usage["count"]
+
+st.set_page_config(page_title="SmartHire Lite", page_icon="🚀", layout="wide")
+
+st.title("🚀 SmartHire Lite - AI Resume Screener")
+
+# 🔥 SHOW USAGE STATUS
+if remaining <= 0:
+    st.error("🚫 Free limit reached (3 resumes). Upgrade to continue.")
+    st.info("💡 Contact: Unlock unlimited analysis for your hiring needs.")
+    st.stop()
+else:
+    st.info(f"🟢 Free analyses left: {remaining}")
+
+# -------------------------------
+# 🔥 INPUT
+# -------------------------------
+uploaded_files = st.file_uploader(
+    "📌 Upload Resumes (PDF)",
+    type=["pdf"],
+    accept_multiple_files=True
+)
+
+job_desc = st.text_area("🧠 Paste Job Description", height=200)
+
+
+# -------------------------------
+# 🔥 DECISION FUNCTIONS
+# -------------------------------
 def get_hiring_decision(score):
     if score >= 80:
         return "✅ Strong Hire"
@@ -21,7 +75,7 @@ def get_hiring_decision(score):
     else:
         return "❌ Reject"
 
-# 🔥 NEW: Urgency Signal
+
 def get_urgency(missing_count):
     if missing_count >= 5:
         return "🚨 High Risk – Missing critical skills"
@@ -30,20 +84,19 @@ def get_urgency(missing_count):
     else:
         return "✅ Low Risk"
 
-st.set_page_config(page_title="SmartHire Lite", page_icon="🚀", layout="wide")
 
-st.title("🚀 SmartHire Lite - AI Resume Screener")
-
-uploaded_files = st.file_uploader(
-    "📌 Upload Resumes (PDF)", type=["pdf"], accept_multiple_files=True
-)
-
-job_desc = st.text_area("🧠 Paste Job Description", height=200)
-
+# -------------------------------
+# 🔍 ANALYSIS BUTTON
+# -------------------------------
 if st.button("🔍 Analyze Candidates"):
 
     if not uploaded_files or not job_desc.strip():
         st.error("Please upload resumes and enter job description")
+        st.stop()
+
+    # 🔥 LIMIT ENFORCEMENT
+    if len(uploaded_files) > remaining:
+        st.error(f"❌ You can only analyze {remaining} more resumes.")
         st.stop()
 
     with st.spinner("Analyzing resumes..."):
@@ -60,7 +113,7 @@ if st.button("🔍 Analyze Candidates"):
             resumes.append(text)
             names.append(normalize_filename(file.name))
 
-        # 🔥 TF-IDF Similarity
+        # TF-IDF
         docs = resumes + [job_clean]
         vectorizer = TfidfVectorizer(stop_words="english", ngram_range=(1, 2))
         tfidf = vectorizer.fit_transform(docs)
@@ -69,13 +122,11 @@ if st.button("🔍 Analyze Candidates"):
 
         results = []
 
-        # 🔥 BUILD RESULTS
         for i in range(len(resumes)):
             skill_score, matched, missing = score_resume(
                 job_clean, resumes[i], float(sim_scores[i])
             )
 
-            # 🔥 HYBRID SCORE (REALISTIC)
             final_score = (skill_score * 0.7) + (sim_scores[i] * 100 * 0.3)
 
             results.append({
@@ -89,25 +140,21 @@ if st.button("🔍 Analyze Candidates"):
 
         df = pd.DataFrame(results)
 
-        # 🔥 NORMALIZE SCORE
+        # Normalize
         max_score = df["Score (%)"].max()
         if max_score > 0:
             df["Score (%)"] = (df["Score (%)"] / max_score) * 100
 
         df["Score (%)"] = df["Score (%)"].round(2)
 
-        # 🔥 SORT
         df = df.sort_values(by="Score (%)", ascending=False).reset_index(drop=True)
 
-        # 🔥 DECISION + URGENCY
         df["Decision"] = df["Score (%)"].apply(get_hiring_decision)
         df["Risk"] = df["Missing Count"].apply(get_urgency)
 
-        # 🔥 CONVERT LIST → STRING (for UI)
         df["Matched Skills"] = df["Matched Skills"].apply(lambda x: ", ".join(x[:5]) if x else "—")
         df["Missing Skills"] = df["Missing Skills"].apply(lambda x: ", ".join(x[:5]) if x else "—")
 
-        # 🔥 AI SUMMARY
         summaries = []
         for i, row in df.iterrows():
             matched = row["Matched Skills"].split(", ") if row["Matched Skills"] != "—" else []
@@ -123,7 +170,6 @@ if st.button("🔍 Analyze Candidates"):
 
         df["AI Summary"] = summaries
 
-        # 🔥 RANK BADGES
         badges = []
         for i in range(len(df)):
             if i == 0:
@@ -140,19 +186,23 @@ if st.button("🔍 Analyze Candidates"):
         os.makedirs("output", exist_ok=True)
         df.to_csv("output/results.csv", index=False)
 
+        # 🔥 UPDATE USAGE COUNT
+        usage["count"] += len(uploaded_files)
+        usage["last_used"] = str(datetime.now())
+        save_usage(usage)
+
     st.success("✅ Analysis Complete")
 
-    # 🔥 FINAL SHORTLIST (SELLING FEATURE)
+    # -------------------------------
+    # RESULTS UI (UNCHANGED)
+    # -------------------------------
     st.subheader("🔥 Final Shortlist (Ready to Contact)")
-
     for i, row in df.head(3).iterrows():
         st.write(f"{i+1}. **{row['Candidate']}** — {row['Decision']}")
 
     st.divider()
 
-    # 🔥 TOP CANDIDATES (HIGH IMPACT UI)
     st.subheader("🏆 Candidate Breakdown")
-
     for i, row in df.head(5).iterrows():
         st.markdown(f"### {row['Rank']} {row['Candidate']}")
         st.progress(row["Score (%)"] / 100)
@@ -167,25 +217,14 @@ if st.button("🔍 Analyze Candidates"):
             st.error(f"🚨 Missing Critical Skills: {row['Missing Skills']}")
 
         st.write(f"**AI Insight:** {row['AI Summary']}")
-
         st.divider()
 
-    # 🔥 FULL TABLE
     st.subheader("📊 Full Ranking")
     st.dataframe(df, width="stretch", hide_index=True)
 
-    # 🔥 AI INSIGHTS
-    st.subheader("🤖 AI Candidate Insights")
-
-    for i, row in df.head(3).iterrows():
-        with st.expander(f"{row['Candidate']} ({row['Score (%)']}%)"):
-            st.write(row["AI Summary"])
-
-    # 🔥 CHART
     st.subheader("📈 Score Visualization")
     st.bar_chart(df.set_index("Candidate")["Score (%)"])
 
-    # 🔥 DOWNLOAD
     with open("output/results.csv", "rb") as f:
         st.download_button(
             "📥 Download Full Report (CSV)",
