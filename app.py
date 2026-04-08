@@ -18,7 +18,7 @@ from utils import (
 # 🔐 USAGE TRACKING SYSTEM
 # -------------------------------
 USAGE_FILE = "usage.json"
-FREE_LIMIT = 3
+FREE_LIMIT = 10
 
 
 def load_usage():
