@@ -5,7 +5,12 @@ import streamlit as st
 from datetime import datetime
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-
+from advanced_ai import (
+    predict_success,
+    growth_potential,
+    explain_decision,
+    simulate_improvement
+)
 from utils import (
     clean_text,
     extract_text_from_pdf,
@@ -18,7 +23,7 @@ from utils import (
 # 🔐 USAGE TRACKING SYSTEM
 # -------------------------------
 USAGE_FILE = "usage.json"
-FREE_LIMIT = 150
+FREE_LIMIT = 10
 
 
 def load_usage():
@@ -128,6 +133,20 @@ if st.button("🔍 Analyze Candidates"):
             )
 
             final_score = (skill_score * 0.7) + (sim_scores[i] * 100 * 0.3)
+            experience_est = max(1, len(resumes[i]) // 1000)  # simple heuristic
+
+            success_score = predict_success(
+               final_score,
+               experience_est,
+               len(missing)
+            )
+
+            growth = growth_potential(len(missing), experience_est)
+
+            explanation = explain_decision(final_score, matched, missing)
+
+            what_if = simulate_improvement(final_score, len(missing))
+
 
             results.append({
                 "Candidate": names[i],
@@ -135,7 +154,12 @@ if st.button("🔍 Analyze Candidates"):
                 "Matched Skills": matched,
                 "Missing Skills": missing,
                 "Match Count": len(matched),
-                "Missing Count": len(missing)
+                "Missing Count": len(missing),
+                "What-if Score(%)":what_if,
+                "Growth Potential":growth,
+                "Explanation":explanation,
+                "Predicted Success(%)":success_score
+
             })
 
         df = pd.DataFrame(results)
@@ -205,19 +229,27 @@ if st.button("🔍 Analyze Candidates"):
     st.subheader("🏆 Candidate Breakdown")
     for i, row in df.head(5).iterrows():
         st.markdown(f"### {row['Rank']} {row['Candidate']}")
-        st.progress(row["Score (%)"] / 100)
+        st.progress(float(row["Score (%)"]) / 100)
 
+    # 🔥 Advanced AI Features
+        st.write(f"📊 **Predicted Success:** {row.get('Predicted_Success', 0)}%")
+        st.write(f"🚀 **Growth Potential:** {row.get('Growth_Potential', 'N/A')}")
+        st.write(f"🔮 **What-if (after upskilling):** {row.get('WhatIf_Score', 0)}%")
+
+        st.info(f"🧾 **Why this decision?** {row.get('Explanation', 'N/A')}")
+
+    # 🔥 Core Data
         st.write(f"**Score:** {row['Score (%)']}%")
         st.write(f"**Decision:** {row['Decision']}")
         st.write(f"**Risk Level:** {row['Risk']}")
 
         st.write(f"**Matched Skills:** {row['Matched Skills']}")
 
-        if row["Missing Skills"] != "—":
-            st.error(f"🚨 Missing Critical Skills: {row['Missing Skills']}")
+    if row["Missing Skills"] != "—":
+        st.error(f"🚨 Missing Critical Skills: {row['Missing Skills']}")
 
-        st.write(f"**AI Insight:** {row['AI Summary']}")
-        st.divider()
+    st.write(f"**AI Insight:** {row['AI Summary']}")
+    st.divider()
 
     st.subheader("📊 Full Ranking")
     st.dataframe(df, width="stretch", hide_index=True)
