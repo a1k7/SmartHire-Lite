@@ -1,42 +1,113 @@
-
 import re
 from typing import List, Tuple
-
 import pdfplumber
 
+# ==============================
+# 🔥 MASSIVE SKILL DATABASE (1000+)
+# ==============================
 
-SKILL_KEYWORDS = [
-    "python", "java", "javascript", "typescript", "react", "node", "flask",
-    "django", "fastapi", "sql", "mongodb", "postgresql", "api", "rest",
-    "html", "css", "git", "github",
-    "photoshop", "illustrator", "adobe illustrator", "adobe photoshop",
-    "premiere", "premiere pro", "after effects", "davinci resolve",
-    "video editing", "editing", "graphic design", "design", "branding",
-    "marketing", "content", "storytelling", "production",
-    "communication", "management", "leadership", "operations",
-    "analysis", "data analysis", "reporting", "sales",
-    "fitness", "nutrition", "logistics", "warehouse"
-]
+SKILL_DB = {
+    "programming": [
+        "python", "java", "c", "c++", "c#", "javascript", "typescript", "go", "rust",
+        "kotlin", "swift", "php", "ruby", "scala", "bash", "shell scripting",
+        "matlab", "r programming", "perl", "haskell", "dart", "objective c"
+    ],
 
+    "web": [
+        "html", "css", "sass", "less", "bootstrap", "tailwind", "material ui",
+        "react", "next js", "angular", "vue", "nuxt", "jquery",
+        "node js", "express", "fastapi", "flask", "django",
+        "rest api", "graphql", "websockets"
+    ],
+
+    "database": [
+        "mysql", "postgresql", "mongodb", "redis", "sqlite", "oracle",
+        "cassandra", "dynamodb", "firebase", "neo4j", "elasticsearch"
+    ],
+
+    "cloud": [
+        "aws", "azure", "gcp", "ec2", "s3", "lambda", "cloudwatch",
+        "cloud formation", "kubernetes", "docker", "terraform",
+        "serverless", "cloud security"
+    ],
+
+    "data": [
+        "data analysis", "data science", "machine learning", "deep learning",
+        "nlp", "computer vision", "pandas", "numpy", "scikit learn",
+        "tensorflow", "pytorch", "xgboost", "lightgbm",
+        "data visualization", "power bi", "tableau"
+    ],
+
+    "devops": [
+        "ci cd", "jenkins", "github actions", "gitlab ci",
+        "ansible", "chef", "puppet", "monitoring", "prometheus", "grafana"
+    ],
+
+    "networking": [
+        "network architecture", "sd wan", "cisco", "aruba", "juniper",
+        "palo alto", "fortinet", "velocloud",
+        "network security", "firewall", "vpn", "routing", "switching",
+        "tcp ip", "dns", "dhcp"
+    ],
+
+    "design": [
+        "figma", "sketch", "adobe xd", "photoshop", "illustrator",
+        "after effects", "premiere pro", "davinci resolve",
+        "ui design", "ux design", "graphic design", "branding"
+    ],
+
+    "business": [
+        "project management", "agile", "scrum", "kanban",
+        "stakeholder management", "communication", "leadership",
+        "sales", "marketing", "operations", "strategy"
+    ],
+
+    "tools": [
+        "git", "github", "bitbucket", "jira", "confluence",
+        "notion", "slack", "trello", "postman", "swagger"
+    ]
+}
+
+# 🔥 EXPAND TO 1000+ (AUTO-GENERATED VARIATIONS)
+EXPANDED_SKILLS = []
+
+for category in SKILL_DB.values():
+    for skill in category:
+        EXPANDED_SKILLS.extend([
+            skill,
+            skill.replace(" ", ""),
+            skill.replace(" ", "-"),
+            skill + " development",
+            skill + " framework",
+            skill + " tools",
+            skill + " experience"
+        ])
+
+# Remove duplicates
+ALL_SKILLS = sorted(set(EXPANDED_SKILLS))
+
+# ==============================
+# 🔥 FAST REGEX COMPILE
+# ==============================
+SKILL_PATTERNS = {
+    skill: re.compile(r"\b" + re.escape(skill) + r"\b")
+    for skill in ALL_SKILLS
+}
+
+# ==============================
+# EXISTING FUNCTIONS (ENHANCED)
+# ==============================
 
 def extract_text_from_pdf(file) -> str:
-    """
-    Accepts either a Streamlit uploaded file object or a file path.
-    Returns extracted lowercase text.
-    """
     text = ""
-
     try:
         if hasattr(file, "seek"):
             file.seek(0)
-
         with pdfplumber.open(file) as pdf:
             for page in pdf.pages:
-                page_text = page.extract_text() or ""
-                text += "\n" + page_text
-    except Exception:
+                text += "\n" + (page.extract_text() or "")
+    except:
         return ""
-
     return text.lower().strip()
 
 
@@ -50,78 +121,68 @@ def clean_text(text: str) -> str:
 def normalize_filename(name: str) -> str:
     name = re.sub(r"\.pdf$", "", name, flags=re.IGNORECASE)
     name = name.replace("-", " ").replace("_", " ")
-    name = re.sub(r"\s+", " ", name).strip()
-    return name.title()
+    return re.sub(r"\s+", " ", name).title().strip()
 
+
+# ==============================
+# 🔥 SUPERCHARGED SKILL EXTRACTION
+# ==============================
 
 def extract_skills(text: str) -> List[str]:
-    """
-    Returns a flat list of matched skill strings.
-    No nested lists.
-    """
     cleaned = clean_text(text)
     found = []
 
-    for skill in SKILL_KEYWORDS:
-        pattern = r"\b" + re.escape(skill.lower()) + r"\b"
-        if re.search(pattern, cleaned):
+    for skill, pattern in SKILL_PATTERNS.items():
+        if pattern.search(cleaned):
             found.append(skill)
 
     return sorted(set(found))
 
 
+# ==============================
+# 🔥 IMPROVED SCORING
+# ==============================
+
 def score_resume(job_text: str, resume_text: str, semantic_score: float) -> Tuple[float, List[str], List[str]]:
-    """
-    Hybrid score:
-    - semantic similarity
-    - required skill match
-    - bonus skill match
-    Returns:
-      final_score (0-100),
-      matched_skills,
-      missing_skills
-    """
+
     job_skills = extract_skills(job_text)
     resume_skills = extract_skills(resume_text)
 
-    matched_skills = sorted(set(job_skills).intersection(set(resume_skills)))
-    missing_skills = sorted(set(job_skills) - set(resume_skills))
+    matched = sorted(set(job_skills) & set(resume_skills))
+    missing = sorted(set(job_skills) - set(resume_skills))
 
-    if job_skills:
-        skill_match_ratio = len(matched_skills) / len(job_skills)
-    else:
-        skill_match_ratio = 0.0
+    skill_ratio = len(matched) / len(job_skills) if job_skills else 0
 
-    # Weighted score
-    raw_score = (0.55 * semantic_score) + (0.45 * skill_match_ratio)
-    final_score = round(raw_score * 100, 2)
+    # 🔥 improved weighting
+    final_score = round(
+        (0.6 * semantic_score) + (0.4 * skill_ratio)
+        * 100, 2
+    )
 
-    return final_score, matched_skills, missing_skills
-def generate_ai_summary(candidate_name, score, matched, missing):
-    """
-    Generates human-like AI summary without using any API
-    """
+    return final_score, matched, missing
 
-    if score >= 80:
+
+# ==============================
+# 🔥 AI SUMMARY (UPGRADED)
+# ==============================
+
+def generate_ai_summary(name, score, matched, missing):
+
+    if score >= 85:
         level = "highly suitable"
-    elif score >= 60:
-        level = "a strong potential fit"
-    elif score >= 40:
-        level = "a moderate fit"
+    elif score >= 70:
+        level = "strong fit"
+    elif score >= 50:
+        level = "moderate fit"
     else:
-        level = "not a strong match"
+        level = "low alignment"
 
-    matched_text = ", ".join(matched[:4]) if matched else "limited relevant skills"
-    missing_text = ", ".join(missing[:3]) if missing else "no major skill gaps"
+    return f"""
+{name} appears to be a {level} candidate.
 
-    summary = f"""
-{candidate_name} appears to be {level} for this role.
+✔ Strengths: {", ".join(matched[:5]) if matched else "Limited overlap"}
 
-Strengths include: {matched_text}.
+⚠ Gaps: {", ".join(missing[:5]) if missing else "No major gaps"}
 
-Potential gaps: {missing_text}.
-
-Overall, this candidate shows {level} alignment with the job requirements.
-"""
-
-    return summary.strip()
+This profile shows {level} with the job requirements.
+""".strip()
