@@ -14,7 +14,7 @@ from advanced_ai import (
 from utils import (
     clean_text,
     extract_text_from_pdf,
-    normalize_filename,
+    
     score_resume,
     generate_ai_summary
 )
@@ -23,7 +23,7 @@ from utils import (
 # 🔐 USAGE TRACKING SYSTEM
 # -------------------------------
 USAGE_FILE = "usage.json"
-FREE_LIMIT = 17
+FREE_LIMIT = 100
 
 
 def load_usage():
@@ -116,7 +116,7 @@ if st.button("🔍 Analyze Candidates"):
             text = clean_text(text)
 
             resumes.append(text)
-            names.append(normalize_filename(file.name))
+            
 
         # TF-IDF
         docs = resumes + [job_clean]
@@ -127,8 +127,8 @@ if st.button("🔍 Analyze Candidates"):
 
         results = []
 
-        for i in range(len(resumes)):
-            skill_score, matched, missing = score_resume(
+        for i , resume in enumerate(resumes):
+            skill_score, matched, missing ,in_qatar,has_qid,role= score_resume(
                 job_clean, resumes[i], float(sim_scores[i])
             )
 
@@ -149,7 +149,7 @@ if st.button("🔍 Analyze Candidates"):
 
 
             results.append({
-                "Candidate": names[i],
+                "Candidate": names[i] if i<len(names) else f"Candidate {i+1}",
                 "Score (%)": final_score,
                 "Matched Skills": matched,
                 "Missing Skills": missing,
@@ -188,7 +188,10 @@ if st.button("🔍 Analyze Candidates"):
                 row["Candidate"],
                 row["Score (%)"],
                 matched,
-                missing
+                missing,
+                role,
+                has_qid,
+                in_qatar
             )
             summaries.append(summary)
 
