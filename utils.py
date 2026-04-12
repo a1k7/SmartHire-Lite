@@ -65,7 +65,8 @@ SKILL_DB = {
     "tools": [
         "git", "github", "bitbucket", "jira", "confluence",
         "notion", "slack", "trello", "postman", "swagger"
-    ]
+    ],
+    "vessel supervisor":["qatar", "doha", "qid", "gulf", "middle east"]
 }
 
 # 🔥 EXPAND TO 1000+ (AUTO-GENERATED VARIATIONS)
