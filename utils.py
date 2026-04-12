@@ -3,73 +3,60 @@ from typing import List, Tuple
 import pdfplumber
 
 # ==============================
-# 🔥 MASSIVE SKILL DATABASE (1000+)
+# 🔥 JOB ROLE SKILL MAP
+# ==============================
+
+JOB_ROLE_SKILLS = {
+    "vessel supervisor": [
+        "port operations", "vessel coordination", "cargo handling",
+        "marine safety", "terminal operations", "logistics coordination"
+    ],
+    "vessel foreman": [
+        "crew supervision", "dock operations", "loading unloading",
+        "shift management", "equipment handling"
+    ],
+    "document controller": [
+        "documentation", "record management", "data entry",
+        "ms excel", "compliance", "filing systems"
+    ],
+    "cargo delivery clerk": [
+        "inventory management", "dispatch", "logistics",
+        "delivery coordination", "warehouse"
+    ],
+    "gate clerk": [
+        "entry management", "security checks", "data logging",
+        "access control", "gate operations"
+    ],
+    "mooring gang": [
+        "rope handling", "vessel docking", "marine operations",
+        "physical labor", "team coordination"
+    ],
+    "custom foreman": [
+        "customs clearance", "import export", "documentation",
+        "compliance", "cargo inspection"
+    ],
+    "service administrator": [
+        "administration", "customer service", "reporting",
+        "coordination", "office operations"
+    ]
+}
+
+# ==============================
+# LOCATION + QID
+# ==============================
+
+LOCATION_KEYWORDS = ["qatar", "doha", "gcc", "middle east"]
+QID_KEYWORDS = ["qid", "qatar id", "resident permit", "valid qid"]
+
+# ==============================
+# SKILLS DB
 # ==============================
 
 SKILL_DB = {
-    "programming": [
-        "python", "java", "c", "c++", "c#", "javascript", "typescript", "go", "rust",
-        "kotlin", "swift", "php", "ruby", "scala", "bash", "shell scripting",
-        "matlab", "r programming", "perl", "haskell", "dart", "objective c"
-    ],
-
-    "web": [
-        "html", "css", "sass", "less", "bootstrap", "tailwind", "material ui",
-        "react", "next js", "angular", "vue", "nuxt", "jquery",
-        "node js", "express", "fastapi", "flask", "django",
-        "rest api", "graphql", "websockets"
-    ],
-
-    "database": [
-        "mysql", "postgresql", "mongodb", "redis", "sqlite", "oracle",
-        "cassandra", "dynamodb", "firebase", "neo4j", "elasticsearch"
-    ],
-
-    "cloud": [
-        "aws", "azure", "gcp", "ec2", "s3", "lambda", "cloudwatch",
-        "cloud formation", "kubernetes", "docker", "terraform",
-        "serverless", "cloud security"
-    ],
-
-    "data": [
-        "data analysis", "data science", "machine learning", "deep learning",
-        "nlp", "computer vision", "pandas", "numpy", "scikit learn",
-        "tensorflow", "pytorch", "xgboost", "lightgbm",
-        "data visualization", "power bi", "tableau"
-    ],
-
-    "devops": [
-        "ci cd", "jenkins", "github actions", "gitlab ci",
-        "ansible", "chef", "puppet", "monitoring", "prometheus", "grafana"
-    ],
-
-    "networking": [
-        "network architecture", "sd wan", "cisco", "aruba", "juniper",
-        "palo alto", "fortinet", "velocloud",
-        "network security", "firewall", "vpn", "routing", "switching",
-        "tcp ip", "dns", "dhcp"
-    ],
-
-    "design": [
-        "figma", "sketch", "adobe xd", "photoshop", "illustrator",
-        "after effects", "premiere pro", "davinci resolve",
-        "ui design", "ux design", "graphic design", "branding"
-    ],
-
-    "business": [
-        "project management", "agile", "scrum", "kanban",
-        "stakeholder management", "communication", "leadership",
-        "sales", "marketing", "operations", "strategy"
-    ],
-
-    "tools": [
-        "git", "github", "bitbucket", "jira", "confluence",
-        "notion", "slack", "trello", "postman", "swagger"
-    ],
-    "vessel supervisor":["qatar", "doha", "qid", "gulf", "middle east"]
+    "business": ["management", "operations", "logistics", "coordination"],
+    "tools": ["excel", "word", "sap", "erp"]
 }
 
-# 🔥 EXPAND TO 1000+ (AUTO-GENERATED VARIATIONS)
 EXPANDED_SKILLS = []
 
 for category in SKILL_DB.values():
@@ -78,25 +65,27 @@ for category in SKILL_DB.values():
             skill,
             skill.replace(" ", ""),
             skill.replace(" ", "-"),
-            skill + " development",
-            skill + " framework",
-            skill + " tools",
             skill + " experience"
         ])
 
-# Remove duplicates
 ALL_SKILLS = sorted(set(EXPANDED_SKILLS))
 
-# ==============================
-# 🔥 FAST REGEX COMPILE
-# ==============================
 SKILL_PATTERNS = {
     skill: re.compile(r"\b" + re.escape(skill) + r"\b")
     for skill in ALL_SKILLS
 }
 
 # ==============================
-# EXISTING FUNCTIONS (ENHANCED)
+# 🔥 MISSING FUNCTION FIX
+# ==============================
+
+def normalize_filename(name: str) -> str:
+    name = re.sub(r"\.pdf$", "", name, flags=re.IGNORECASE)
+    name = name.replace("-", " ").replace("_", " ")
+    return re.sub(r"\s+", " ", name).title().strip()
+
+# ==============================
+# PDF EXTRACTION
 # ==============================
 
 def extract_text_from_pdf(file) -> str:
@@ -111,22 +100,17 @@ def extract_text_from_pdf(file) -> str:
         return ""
     return text.lower().strip()
 
+# ==============================
+# CLEAN TEXT
+# ==============================
 
 def clean_text(text: str) -> str:
     text = text.lower()
     text = re.sub(r"[^a-z0-9+#./\-\s]", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
-
-
-def normalize_filename(name: str) -> str:
-    name = re.sub(r"\.pdf$", "", name, flags=re.IGNORECASE)
-    name = name.replace("-", " ").replace("_", " ")
-    return re.sub(r"\s+", " ", name).title().strip()
-
+    return re.sub(r"\s+", " ", text).strip()
 
 # ==============================
-# 🔥 SUPERCHARGED SKILL EXTRACTION
+# SKILL EXTRACTION
 # ==============================
 
 def extract_skills(text: str) -> List[str]:
@@ -139,12 +123,35 @@ def extract_skills(text: str) -> List[str]:
 
     return sorted(set(found))
 
+# ==============================
+# ROLE DETECTION
+# ==============================
+
+def detect_role(job_text: str) -> str:
+    job_text = job_text.lower()
+    for role in JOB_ROLE_SKILLS.keys():
+        if role in job_text:
+            return role
+    return "general"
 
 # ==============================
-# 🔥 IMPROVED SCORING
+# QATAR DETECTION
 # ==============================
 
-def score_resume(job_text: str, resume_text: str, semantic_score: float) -> Tuple[float, List[str], List[str]]:
+def detect_qatar_status(text: str) -> Tuple[bool, bool]:
+    text = text.lower()
+    in_qatar = any(k in text for k in LOCATION_KEYWORDS)
+    has_qid = any(k in text for k in QID_KEYWORDS)
+    return in_qatar, has_qid
+
+# ==============================
+# SCORING
+# ==============================
+
+def score_resume(job_text: str, resume_text: str, semantic_score: float):
+
+    job_text = clean_text(job_text)
+    resume_text = clean_text(resume_text)
 
     job_skills = extract_skills(job_text)
     resume_skills = extract_skills(resume_text)
@@ -154,20 +161,34 @@ def score_resume(job_text: str, resume_text: str, semantic_score: float) -> Tupl
 
     skill_ratio = len(matched) / len(job_skills) if job_skills else 0
 
-    # 🔥 improved weighting
+    role = detect_role(job_text)
+    role_skills = JOB_ROLE_SKILLS.get(role, [])
+
+    role_match_count = sum(1 for skill in role_skills if skill in resume_text)
+    role_score = role_match_count / len(role_skills) if role_skills else 0
+
+    in_qatar, has_qid = detect_qatar_status(resume_text)
+
+    location_bonus = 0
+    if in_qatar:
+        location_bonus += 0.1
+    if has_qid:
+        location_bonus += 0.1
+
     final_score = round(
-        (0.6 * semantic_score) + (0.4 * skill_ratio)
-        * 100, 2
+        ((0.5 * semantic_score) +
+         (0.3 * skill_ratio) +
+         (0.2 * role_score) +
+         location_bonus) * 100, 2
     )
 
-    return final_score, matched, missing
-
+    return final_score, matched, missing, role, in_qatar, has_qid
 
 # ==============================
-# 🔥 AI SUMMARY (UPGRADED)
+# AI SUMMARY
 # ==============================
 
-def generate_ai_summary(name, score, matched, missing):
+def generate_ai_summary(name, score, matched, missing, role, in_qatar, has_qid):
 
     if score >= 85:
         level = "highly suitable"
@@ -178,12 +199,21 @@ def generate_ai_summary(name, score, matched, missing):
     else:
         level = "low alignment"
 
+    if in_qatar and has_qid:
+        location_note = "Candidate is locally available in Qatar with QID ✅"
+    elif in_qatar:
+        location_note = "Candidate is in Qatar but QID unclear ⚠"
+    else:
+        location_note = "Candidate not clearly based in Qatar ❌"
+
     return f"""
-{name} appears to be a {level} candidate.
+{name} appears to be a {level} candidate for the role: {role}.
 
 ✔ Strengths: {", ".join(matched[:5]) if matched else "Limited overlap"}
 
 ⚠ Gaps: {", ".join(missing[:5]) if missing else "No major gaps"}
 
-This profile shows {level} with the job requirements.
+📍 {location_note}
+
+This profile shows {level} alignment with job requirements.
 """.strip()
